@@ -4,6 +4,7 @@ import { FakeRedis } from "./fakeRedis";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { v4 as uuid4 } from "uuid";
 import { checkCodeChallengeVerifier } from "./pkce";
+import crypto from 'crypto'
 
 const JWT_SECRET = "super+secret+key"
 
@@ -63,6 +64,8 @@ router.get("/token", async (req, res) => {
       aud: "http://localhost:7891",
       exp: Math.floor(Date.now() / 1000) + (60 * 15),
       iat: Math.floor(Date.now() / 1000),
+      client_id: authCode.client_id,
+      nonce: uuid4(), // TODO: nonce
       jti: uuid4(),
     } as JwtPayload,
     JWT_SECRET,
@@ -71,13 +74,7 @@ router.get("/token", async (req, res) => {
     }
   )
 
-  const refresh_token = uuid4()
-
-  res.cookie("rid", refresh_token, {
-    httpOnly: true,
-    secure: false, // for dev
-    sameSite: "strict"
-  })
+  const refresh_token = crypto.randomBytes(32).toString("hex")
 
   res.status(200).json({ access_token, refresh_token })
 })
