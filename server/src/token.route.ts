@@ -5,8 +5,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { v4 as uuid4 } from "uuid";
 import { checkCodeChallengeVerifier } from "./pkce";
 import crypto from 'crypto'
-
-const JWT_SECRET = "super+secret+key"
+import { getPublicJwk, privateKey } from "./jwks";
 
 const router: Router = Router()
 
@@ -32,51 +31,57 @@ function validateClientAuthorize(authHeader: string | undefined, redirectUri: st
 router.get("/token", async (req, res) => {
   const { grant_type, redirect_uri, code, code_verifier } = req.query;
 
-  if (grant_type !== "authorization_code") {
-    res.status(400).send("invalid_request")
-    return;
-  }
+  if (grant_type === "authorization_code") {
+    const authCode = FakeRedis.getInstance().get<any>(code as string);
+    const isValidClient = validateClientAuthorize(req.headers.authorization, redirect_uri as string);
 
-  const authCode = FakeRedis.getInstance().get<any>(code as string);
-  const isValidClient = validateClientAuthorize(req.headers.authorization, redirect_uri as string);
-
-  if (!isValidClient) {
-    res.status(401).send("invalid_client")
-    return;
-  }
-
-  FakeRedis.getInstance().remove(code as string);
-
-  if (authCode.redirect_uri !== redirect_uri) {
-    res.status(401).send("invalid_redirect")
-    return;
-  }
-
-  // CHEK PKCE
-  if (!await checkCodeChallengeVerifier(code_verifier as string, authCode.code_challenge, authCode.code_challenge_method)) {
-    res.status(401).send("invalid_pkce")
-    return;
-  }
-
-  const access_token = jwt.sign(
-    {
-      iss: "http://localhost:7890",
-      aud: "http://localhost:7891",
-      exp: Math.floor(Date.now() / 1000) + (60 * 15),
-      iat: Math.floor(Date.now() / 1000),
-      client_id: authCode.client_id,
-      nonce: uuid4(), // TODO: nonce
-      jti: uuid4(),
-    } as JwtPayload,
-    JWT_SECRET,
-    {
-      algorithm: "HS256"
+    if (!isValidClient) {
+      res.status(401).send("invalid_client")
+      return;
     }
-  )
 
-  const refresh_token = crypto.randomBytes(32).toString("hex")
+    FakeRedis.getInstance().remove(code as string);
 
-  res.status(200).json({ access_token, refresh_token })
+    if (authCode.redirect_uri !== redirect_uri) {
+      res.status(401).send("invalid_redirect")
+      return;
+    }
+
+    // CHEK PKCE
+    if (!await checkCodeChallengeVerifier(code_verifier as string, authCode.code_challenge, authCode.code_challenge_method)) {
+      res.status(401).send("invalid_pkce")
+      return;
+    }
+
+    const access_token = jwt.sign(
+      {
+        sub: "user123",
+        iss: "http://localhost:7890",
+        aud: "http://localhost:7891",
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + (60 * 15), // 15m
+        client_id: authCode.client_id,
+        nonce: uuid4(), // TODO: nonce
+        jti: uuid4(),
+      } as JwtPayload,
+      privateKey,
+      {
+        algorithm: "RS256"
+      }
+    )
+
+    const refresh_token = crypto.randomBytes(32).toString("hex")
+
+    res.status(200).json({ access_token, refresh_token, expires_in: 1000 * 60 * 15 })
+  } else if (grant_type === "refresh_token") {
+    res.status(400).json({ message: "not_impl" })
+  }
+})
+
+router.get("/.well-known/jwks.json", (_req, res) => {
+  res.status(200).json({
+    keys: [getPublicJwk()]
+  })
 })
 
 export default router;

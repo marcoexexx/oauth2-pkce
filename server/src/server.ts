@@ -9,10 +9,7 @@ export const app: Application = express();
 
 app.use(express.urlencoded({extended: true}))
 app.use(cookieParser())
-app.use(cors({
-  origin: ["http://localhost:7891"],
-  credentials: true
-}))
+app.use(cors())
 
 app.use("/", authorizeRouter)
 app.use("/", tokenRouter)

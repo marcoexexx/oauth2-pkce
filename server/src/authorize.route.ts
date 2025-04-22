@@ -25,7 +25,7 @@ router.get("/authorize", (req, res) => {
   }
 
   const code = uuidv4();
-  const requestId = uuidv4();
+  const requestToken = uuidv4();
 
   // auth code
   FakeRedis.getInstance().set(code, {
@@ -37,20 +37,20 @@ router.get("/authorize", (req, res) => {
     expirse_in: 60 * 15
   })
 
-  FakeRedis.getInstance().set(`request_info:${requestId}`, { 
+  FakeRedis.getInstance().set(`request_token:${requestToken}`, { 
     code, 
     client,
     expirse_in: 60 * 15 
   })
 
-  res.redirect(`/login?request_id=${requestId}`);
+  res.redirect(`/login?request_token=${requestToken}`);
 })
 
 // LOGIN ROUTER
 router.get("/login", async (req, res) => {
-  const { request_id } = req.query;
+  const { request_token } = req.query;
 
-  const requestInfo = FakeRedis.getInstance().get<any>(`request_info:${request_id}`);
+  const requestInfo = FakeRedis.getInstance().get<any>(`request_token:${request_token}`);
   if (!requestInfo) {
     res.status(401).json({ message: "session expired" })
     return;
@@ -60,7 +60,7 @@ router.get("/login", async (req, res) => {
     <div>
       <p>Wellcome: ${requestInfo.client.client_name}</p>
       <form action="/login" method="post">
-        <input hidden type="text" name="request_id" value="${request_id}" />
+        <input hidden type="text" name="request_token" value="${request_token}" />
         <input type="text" name="username" placeholder="username" /></br>
         <input type="password" name="password" placeholder="password" /></br>
         <input type="submit" value="Submit" />
@@ -70,29 +70,29 @@ router.get("/login", async (req, res) => {
 })
 
 router.post("/login", async (req, res) => {
-  const { username, password, request_id } = req.body;
+  const { username, password, request_token } = req.body;
 
   if (username !== "demo" || password !== "demo123") {
     res.status(401).json({ message: "wrong credential" })
     return;
   }
 
-  const requestInfo = FakeRedis.getInstance().get<any>(`request_info:${request_id}`);
-  if (!requestInfo) {
+  const requestToken = FakeRedis.getInstance().get<any>(`request_token:${request_token}`);
+  if (!requestToken) {
     res.status(401).json({ message: "session expired" })
     return;
   }
 
-  const authCode = FakeRedis.getInstance().get<any>(requestInfo.code);
+  const authCode = FakeRedis.getInstance().get<any>(requestToken.code);
   if (!authCode) {
     res.status(403).send()
     return;
   }
 
-  FakeRedis.getInstance().remove(`request_info:${request_id}`)
+  FakeRedis.getInstance().remove(`request_token:${request_token}`)
 
   const redirectUrl = new URL(authCode.redirect_uri as string);
-  redirectUrl.searchParams.set("code", requestInfo.code);
+  redirectUrl.searchParams.set("code", requestToken.code);
   if (authCode.state) redirectUrl.searchParams.set("state", authCode.state as string);
   res.redirect(redirectUrl.toString());
 })
