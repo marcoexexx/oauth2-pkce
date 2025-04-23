@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import crypto from "crypto";
 
 const CSRF_SECRET = "super-csrf-secret";
 

@@ -1,10 +1,11 @@
 import { NextFunction, Request, Response } from "express";
+import config from "../config";
 import { validateCSRFSignature } from "../csrf";
 
 export function validateCsrf() {
   return (req: Request, res: Response, next: NextFunction) => {
-    const tokenHeader = req.headers["x-xsrf-token"] as string;
-    const tokenCookie = req.cookies["xsrf-token"];
+    const tokenHeader = req.headers[config.csrf.csrfHeaderName] as string;
+    const tokenCookie = req.cookies[config.csrf.csrfCookieName];
 
     if (!tokenHeader || !tokenCookie) {
       res.status(403).json({ error: "EBADCSRFTOKEN" });

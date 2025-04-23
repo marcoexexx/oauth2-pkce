@@ -74,19 +74,19 @@ router.post("/login", async (req, res) => {
 
   if (username !== "demo" || password !== "demo123") {
     res.status(401).json({ message: "wrong credential" })
-    return;
+    return FakeRedis.getInstance().remove(`request_token:${request_token}`)
   }
 
   const requestToken = FakeRedis.getInstance().get<any>(`request_token:${request_token}`);
   if (!requestToken) {
     res.status(401).json({ message: "session expired" })
-    return;
+    return FakeRedis.getInstance().remove(`request_token:${request_token}`)
   }
 
   const authCode = FakeRedis.getInstance().get<any>(requestToken.code);
   if (!authCode) {
     res.status(403).send()
-    return;
+    return FakeRedis.getInstance().remove(`request_token:${request_token}`)
   }
 
   FakeRedis.getInstance().remove(`request_token:${request_token}`)

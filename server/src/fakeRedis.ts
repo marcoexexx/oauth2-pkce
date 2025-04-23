@@ -1,4 +1,5 @@
 export type FakeRedisTTL = {
+  /** in second */
   expirse_in: number;
 };
 

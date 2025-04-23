@@ -28,17 +28,18 @@ function validateClientAuthorize(authHeader: string | undefined, redirectUri: st
   return true;
 }
 
-router.get("/token", async (req, res) => {
-  const { grant_type, redirect_uri, code, code_verifier } = req.query;
+router.post("/token", async (req, res) => {
+  const { grant_type, redirect_uri, code, code_verifier, refresh_token } = req.body;
+
+  const isValidClient = validateClientAuthorize(req.headers.authorization, redirect_uri as string);
+
+  if (!isValidClient) {
+    res.status(401).send("invalid_client")
+    return;
+  }
 
   if (grant_type === "authorization_code") {
     const authCode = FakeRedis.getInstance().get<any>(code as string);
-    const isValidClient = validateClientAuthorize(req.headers.authorization, redirect_uri as string);
-
-    if (!isValidClient) {
-      res.status(401).send("invalid_client")
-      return;
-    }
 
     FakeRedis.getInstance().remove(code as string);
 
@@ -53,28 +54,81 @@ router.get("/token", async (req, res) => {
       return;
     }
 
+    const userId = "user123" // INFO: for demo
+    // const expires_in = 60 * 15;
+    const expires_in = 10
+
     const access_token = jwt.sign(
       {
-        sub: "user123",
+        sub: userId,
         iss: "http://localhost:7890",
         aud: "http://localhost:7891",
         iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (60 * 15), // 15m
+        exp: Math.floor(Date.now() / 1000) + expires_in,
         client_id: authCode.client_id,
         nonce: uuid4(), // TODO: nonce
+        scope: "read write", // TODO: scope for api, req.body.scope
         jti: uuid4(),
       } as JwtPayload,
       privateKey,
       {
+        keyid: "1",
         algorithm: "RS256"
       }
     )
 
     const refresh_token = crypto.randomBytes(32).toString("hex")
 
-    res.status(200).json({ access_token, refresh_token, expires_in: 1000 * 60 * 15 })
+    FakeRedis.getInstance().set(`refresh_token:${refresh_token}`, {
+      sub: userId,
+      client_id: authCode.client_id,
+      expirse_in: 60 * 60 * 24 * 7
+    })
+
+    res.status(200).json({ access_token, refresh_token, expires_in, token_type: "Bearer" })
   } else if (grant_type === "refresh_token") {
-    res.status(400).json({ message: "not_impl" })
+    const token = FakeRedis.getInstance().get<any>(`refresh_token:${refresh_token}`)
+    if (!token) {
+      res.status(401).json({ error: 'invalid_grant' })
+      return;
+    }
+
+    // const expires_in = 60 * 15;
+    const expires_in = 10
+
+    const access_token = jwt.sign(
+      {
+        sub: token.sub,
+        iss: "http://localhost:7890",
+        aud: "http://localhost:7891",
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + (expires_in), // 15m
+        client_id: token.client_id,
+        nonce: uuid4(), // TODO: nonce
+        scope: "read write", // TODO: scope for api, req.body.scope
+        jti: uuid4(),
+      } as JwtPayload,
+      privateKey,
+      {
+        keyid: "1",
+        algorithm: "RS256"
+      }
+    )
+
+    const new_refresh_token = crypto.randomBytes(32).toString("hex")
+
+    FakeRedis.getInstance().set<any>(`refresh_token:${new_refresh_token}`, { // INFO: replace new refresh_token, revoke old token
+      sub: token.sub,
+      client_id: token.client_id,
+      expirse_in: 60 * 60 * 24 * 7
+    })
+
+    res.status(200).json({ 
+      access_token,
+      refresh_token: new_refresh_token,
+      token_type: "Bearer",
+      expires_in,
+    })
   }
 })
 
