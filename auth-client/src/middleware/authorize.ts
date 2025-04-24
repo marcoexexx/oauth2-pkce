@@ -21,18 +21,18 @@ export function authorize(redis: any) {
 
     const now = Math.floor(Date.now() / 1000)
     const needRefresh = token.expires_at - now < config.clientServer.tokenRefreshMargin;
-    console.log("NO", needRefresh)
 
     if (needRefresh) {
       try {
-        const newToken = await refreshAccessToken(token.refresh_token);
         console.log("EXPRED GENERATE NEW")
+        const newToken = await refreshAccessToken(token.refresh_token);
         generateNewSession(redis, newToken, res);
 
         const payload = await verifyAccessToken(newToken.access_token);
         // @ts-ignore
         req.context = { session: payload }
       } catch (err: any) {
+        console.log("FAILED refresh token", err)
         res.status(401).json({ message: err?.message ?? "invalid_token" })
         return
       }

@@ -1,6 +1,6 @@
 export type FakeRedisTTL = {
   /** in second */
-  expirse_in: number;
+  expires_in: number;
 };
 
 export class FakeRedis {
@@ -14,7 +14,7 @@ export class FakeRedis {
 
   public get<T extends FakeRedisTTL>(key: string): T | undefined {
     const payload = this.data.get(key) as T | undefined;
-    if (!payload?.expirse_in || payload.expirse_in > (Date.now() / 1000)) this.data.delete(key);
+    if (!payload?.expires_in || payload.expires_in > (Date.now() / 1000)) this.data.delete(key);
     return payload;
   }
 

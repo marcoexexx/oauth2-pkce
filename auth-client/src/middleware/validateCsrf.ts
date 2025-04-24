@@ -4,7 +4,7 @@ import { validateCSRFSignature } from "../csrf";
 
 export function validateCsrf() {
   return (req: Request, res: Response, next: NextFunction) => {
-    const tokenHeader = req.headers[config.csrf.csrfHeaderName] as string;
+    const tokenHeader = req.headers[config.csrf.csrfHeaderName.toLowerCase()] as string;
     const tokenCookie = req.cookies[config.csrf.csrfCookieName];
 
     if (!tokenHeader || !tokenCookie) {

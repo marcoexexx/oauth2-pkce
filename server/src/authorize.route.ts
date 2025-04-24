@@ -34,13 +34,13 @@ router.get("/authorize", (req, res) => {
     redirect_uri,
     code_challenge,
     code_challenge_method,
-    expirse_in: 60 * 15
+    expires_in: 60 * 15
   })
 
   FakeRedis.getInstance().set(`request_token:${requestToken}`, { 
     code, 
     client,
-    expirse_in: 60 * 15 
+    expires_in: 60 * 15 
   })
 
   res.redirect(`/login?request_token=${requestToken}`);

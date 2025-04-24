@@ -55,8 +55,7 @@ router.post("/token", async (req, res) => {
     }
 
     const userId = "user123" // INFO: for demo
-    // const expires_in = 60 * 15;
-    const expires_in = 10
+    const expires_in = 60 * 15;
 
     const access_token = jwt.sign(
       {
@@ -82,7 +81,7 @@ router.post("/token", async (req, res) => {
     FakeRedis.getInstance().set(`refresh_token:${refresh_token}`, {
       sub: userId,
       client_id: authCode.client_id,
-      expirse_in: 60 * 60 * 24 * 7
+      expires_in: 60 * 60 * 24 * 7
     })
 
     res.status(200).json({ access_token, refresh_token, expires_in, token_type: "Bearer" })
@@ -93,8 +92,7 @@ router.post("/token", async (req, res) => {
       return;
     }
 
-    // const expires_in = 60 * 15;
-    const expires_in = 10
+    const expires_in = 60 * 15;
 
     const access_token = jwt.sign(
       {
@@ -120,8 +118,12 @@ router.post("/token", async (req, res) => {
     FakeRedis.getInstance().set<any>(`refresh_token:${new_refresh_token}`, { // INFO: replace new refresh_token, revoke old token
       sub: token.sub,
       client_id: token.client_id,
-      expirse_in: 60 * 60 * 24 * 7
+      expires_in: 60 * 60 * 24 * 7
     })
+
+    // if OIDC
+    // access_token { sub: user.id },
+    // id_token { sub: user.id, ...userinfo depends scope }
 
     res.status(200).json({ 
       access_token,
@@ -137,5 +139,16 @@ router.get("/.well-known/jwks.json", (_req, res) => {
     keys: [getPublicJwk()]
   })
 })
+
+
+// INFO: if OIDC
+// router.get("/.well-known/openid-configuration")
+// {
+//   "issuer": "https://your-auth-server.com",
+//   "authorization_endpoint": "https://your-auth-server.com/oauth2/authorize",
+//   "token_endpoint": "https://your-auth-server.com/oauth2/token",
+//   "userinfo_endpoint": "https://your-auth-server.com/oauth2/userinfo",
+//   "jwks_uri": "https://your-auth-server.com/.well-known/jwks.json"
+// }
 
 export default router;

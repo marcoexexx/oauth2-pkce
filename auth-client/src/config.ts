@@ -13,15 +13,15 @@ const config = {
     port: 7891,
     callbackPath: "/oauth/callback/chordstack",
     sessionCookieName: "_session",
-    tokenRefreshMargin: 300, // 5 minutes in seconds
+    tokenRefreshMargin: 60 * 5, // 5 minutes in seconds
   },
   csrf: {
-    csrfCookieName: "xsrf-token",
-    csrfHeaderName: "x-xsrf-token",
+    csrfCookieName: "XSRF-TOKEN",
+    csrfHeaderName: "X-XSRF-TOKEN",
   },
   pkce: {
-    code_challenge: "JGMoIeQJqka1vqnIcPDi9YgGYWBPNQKa_ZFlqu33IIQ",
     code_challenge_method: "S256",
+    code_challenge: "JGMoIeQJqka1vqnIcPDi9YgGYWBPNQKa_ZFlqu33IIQ",
     code_verifier: "N0NhM0tncXhpc3h6b0ViS2w0eHRQVnFBOUtYYUtaZHc",
   },
 };

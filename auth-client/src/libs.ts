@@ -10,7 +10,7 @@ export function generateNewSession(redis: any, token: TokenSet, res: Response) {
   redis.set(`session:${sessionId}`, {
     refresh_token: token.refresh_token,
     access_token: token.access_token,
-    expire_at: token.expires_at
+    expires_at: token.expires_at
   });
 
   res.cookie(config.clientServer.sessionCookieName, sessionId, {
@@ -58,7 +58,7 @@ export async function exchangeCodeForToken(code: string): Promise<TokenSet> {
   return {
     access_token: response.data.access_token,
     refresh_token: response.data.refresh_token,
-    expires_at: now + (response.data.expires_in / 1000),
+    expires_at: now + (response.data.expires_in), 
     token_type: response.data.token_type,
   };
 }
@@ -70,7 +70,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<TokenSet
     {
       grant_type: "refresh_token",
       refresh_token: refreshToken,
-      redirect_uri: `http://client-server${config.clientServer.callbackPath}`,
+      redirect_uri: config.redirectUri,
     },
     {
       withCredentials: true,
