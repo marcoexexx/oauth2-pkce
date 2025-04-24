@@ -43,9 +43,15 @@ function App() {
     }
   }
 
+  function handleOnLogout() {
+    api.post("/logout")
+      .then(() => window.location.reload())
+      .catch(err => console.error(err?.response?.data))
+  }
+
   return (
     <>
-      {!isAuthorized ? <button onClick={handleOnClick}>Login</button> : null}
+      {!isAuthorized ? <button onClick={handleOnClick}>Login</button> : <button onClick={handleOnLogout}>Logout</button>}
 
       <ul>
         {todos.map((todo: any) => (

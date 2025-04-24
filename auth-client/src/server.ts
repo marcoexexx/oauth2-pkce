@@ -93,6 +93,13 @@ app.get(config.clientServer.callbackPath, async (req, res) => {
   }
 });
 
+app.post("/logout", authorize(fakeRedis), validateCsrf(), (req, res) => {
+  const sessionId = req.cookies[config.clientServer.sessionCookieName]
+  if (sessionId) fakeRedis.delete(`session:${sessionId}`)
+  res.clearCookie(config.clientServer.sessionCookieName)
+  res.status(200).json({ message: "loggout success"})
+})
+
 app.get("/me", authorize(fakeRedis), async (req, res) => {
   // INFO: if OIDC -> request /oauth/userinfo -> { Authorization: Bearer <access_token> }
   // @ts-ignore
